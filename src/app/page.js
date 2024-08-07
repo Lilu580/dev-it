@@ -1,95 +1,70 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+"use client";
 
-export default function Home() {
+import { useState } from 'react';
+import axios from 'axios';
+
+const Home = () => {
+  const [inputValue, setInputValue] = useState(10);
+  const [isRunning, setIsRunning] = useState(false);
+  const [results, setResults] = useState([]);
+
+  const handleChange = (e) => {
+    if (e.target.value > 100) {
+      return setInputValue(100)
+    }
+
+    setInputValue(e.target.value);
+  };
+
+  const handleStart = async () => {
+    setIsRunning(true);
+    let activeRequests = 0;
+    let completedRequests = 0;
+
+    const sendRequest = async (index) => {
+      try {
+        const response = await axios.post('/api', { index });
+        setResults((prevResults) => [...prevResults, response.data.index]);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        activeRequests--;
+        completedRequests++;
+        if (completedRequests >= 1000) {
+          setIsRunning(false);
+        }
+      }
+    };
+
+    const initiateRequest = () => {
+      if (completedRequests + activeRequests < 1000) {
+        activeRequests++;
+        sendRequest(completedRequests + activeRequests);
+        setTimeout(initiateRequest, 1000 / inputValue);
+      }
+    };
+
+    initiateRequest();
+  };
+
   return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>src/app/page.js</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
-
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore starter templates for Next.js.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+    <div>
+      <input
+        type="number"
+        value={inputValue}
+        onChange={handleChange}
+        min="0"
+        max="100"
+        required
+      />
+      <button onClick={handleStart} disabled={isRunning}>Start</button>
+      <ul>
+        {results.map((result, index) => (
+          <li key={index}>{result}</li>
+        ))}
+      </ul>
+    </div>
   );
-}
+};
+
+export default Home;
